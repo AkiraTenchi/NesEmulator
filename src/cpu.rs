@@ -1,0 +1,47 @@
+pub struct CPU {
+    pub register_a: u8,
+    pub status: u8,
+    pub program_counter: u16,
+}
+
+impl CPU{
+    pub fn new() -> Self {
+        CPU {
+            register_a: 0,
+            status: 0,
+            program_counter: 0,
+        }
+    }
+
+    pub fn interpret(&mut self, program: Vec<u8>){
+        self.program_counter = 0;
+
+        loop{
+            let opscode = program[self.program_counter as usize];
+            self.program_counter += 1;
+
+            match opscode {
+            0xA9 => {
+                let param = program[self.program_counter as usize];
+                self.program_counter += 1;
+                self.register_a = param;
+
+                //check if register a is 0 and if it is we set zero flag to 1 else we set it to 0
+                if self.register_a == 0 {
+                    self.status = self.status | 0b0000_0010;
+                } else {
+                    self.status = self.status & 0b1111_1101;
+                }
+
+                //check if the negativ bit of register a is set if it is we set the negative bit of the status 
+                if self.register_a & 0b1000_0000 != 0 {
+                    self.status = self.status | 0b1000_0000;
+                } else {
+                    self.status = self.status & 0b0111_1111;
+                }
+            }
+                _ => todo!()
+            }
+        }
+    }
+}
