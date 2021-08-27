@@ -17,6 +17,36 @@ impl CPU {
         }
     }
 
+    fn lda(&mut self, value: u8){
+        self.register_a = value;
+        self.update_zero_flag(self.register_a);
+        self.update_negative_flag(self.register_a);
+    }
+
+    fn tax(&mut self){
+        self.register_x = self.register_a;
+        self.update_zero_flag(self.register_x);
+        self.update_negative_flag(self.register_x);
+    }
+
+    fn update_zero_flag(&mut self, value: u8){
+        //check if register a is 0 and if it is we set zero flag to 1 else we set it to 0
+        if value == 0 {
+            self.status = self.status | 0b0000_0010;
+        } else {
+            self.status = self.status & 0b1111_1101;
+        }
+    }
+
+    fn update_negative_flag(&mut self, value: u8){
+        //check if the negativ bit of register a is set if it is we set the negative bit of the status
+        if value & 0b1000_0000 != 0 {
+            self.status = self.status | 0b1000_0000;
+        } else {
+            self.status = self.status & 0b0111_1111;
+        }
+    }
+
     pub fn interpret(&mut self, program: Vec<u8>) {
         self.program_counter = 0;
 
@@ -28,44 +58,12 @@ impl CPU {
                 0xA9 => {
                     let param = program[self.program_counter as usize];
                     self.program_counter += 1;
-                    self.register_a = param;
-
-                    //check if register a is 0 and if it is we set zero flag to 1 else we set it to 0
-                    if self.register_a == 0 {
-                        self.status = self.status | 0b0000_0010;
-                    } else {
-                        self.status = self.status & 0b1111_1101;
-                    }
-
-                    //check if the negativ bit of register a is set if it is we set the negative bit of the status
-                    if self.register_a & 0b1000_0000 != 0 {
-                        self.status = self.status | 0b1000_0000;
-                    } else {
-                        self.status = self.status & 0b0111_1111;
-                    }
+                    self.lda(param);
                 }
 
-                0xAA => {
-                    self.register_x = self.register_a;
+                0xAA => self.tax(),
 
-                    //check if register x is 0 and if it is we set zero flag to 1 else we set it to 0
-                    if self.register_x == 0 {
-                        self.status = self.status | 0b0000_0010;
-                    } else {
-                        self.status = self.status & 0b1111_1101;
-                    }
-
-                    //check if the negativ bit of register x is set if it is we set the negative bit of the status
-                    if self.register_x & 0b1000_0000 != 0 {
-                        self.status = self.status | 0b1000_0000;
-                    } else {
-                        self.status = self.status & 0b0111_1111;
-                    }
-                }
-
-                0x00 => {
-                    return;
-                }
+                0x00 => return,
 
                 _ => todo!(),
             }
