@@ -7,6 +7,12 @@ pub struct CPU {
     memory: [u8; 0xFFFF]
 }
 
+impl Default for CPU {
+    fn default() -> Self {
+        CPU::new()
+    }
+}
+
 impl CPU {
     pub fn new() -> Self {
         CPU {
@@ -81,18 +87,18 @@ impl CPU {
     fn update_zero_flag(&mut self, value: u8){
         //check if register a is 0 and if it is we set zero flag to 1 else we set it to 0
         if value == 0 {
-            self.status = self.status | 0b0000_0010;
+            self.status |= 0b0000_0010;
         } else {
-            self.status = self.status & 0b1111_1101;
+            self.status &= 0b1111_1101;
         }
     }
 
     fn update_negative_flag(&mut self, value: u8){
         //check if the negativ bit of register a is set if it is we set the negative bit of the status
         if value & 0b1000_0000 != 0 {
-            self.status = self.status | 0b1000_0000;
+            self.status |= 0b1000_0000;
         } else {
-            self.status = self.status & 0b0111_1111;
+            self.status &= 0b0111_1111;
         }
     }
 
