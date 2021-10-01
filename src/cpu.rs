@@ -143,13 +143,6 @@ impl CPU {
         let addr = self.get_operand_address(addressing_mode);
         let value = self.mem_read(addr);
         self.register_a = value;
-        dbg!(
-            addr,
-            value,
-            self.register_a,
-            self.register_x,
-            self.register_y
-        );
         self.update_zero_flag(self.register_a);
         self.update_negative_flag(self.register_a);
     }
