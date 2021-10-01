@@ -48,9 +48,43 @@ impl CPU {
 
             match opcode {
                 0xA9 => {
-                    let param = self.mem_read(self.program_counter);
+                    self.lda(&AddressingMode::Immediate);
                     self.program_counter += 1;
-                    self.lda(param);
+                }
+
+                0xA5 => {
+                    self.lda(&AddressingMode::ZeroPage);
+                    self.program_counter += 1;
+                }
+
+                0xb5 => {
+                    self.lda(&AddressingMode::ZeroPage_X);
+                    self.program_counter += 1;
+                }
+
+                0xAD => {
+                    self.lda(&AddressingMode::Absolute);
+                    self.program_counter += 2;
+                }
+
+                0xbd => {
+                    self.lda(&AddressingMode::Absolute_X);
+                    self.program_counter += 2;
+                }
+
+                0xb9 => {
+                    self.lda(&AddressingMode::Absolute_Y);
+                    self.program_counter += 2;
+                }
+
+                0xa1 => {
+                    self.lda(&AddressingMode::Indirect_X);
+                    self.program_counter += 1;
+                }
+
+                0xb1 => {
+                    self.lda(&AddressingMode::Indirect_Y);
+                    self.program_counter += 1;
                 }
 
                 0xAA => self.tax(),
@@ -105,8 +139,17 @@ impl CPU {
         self.mem_write_u16(0xFFFC, 0x8000);
     }
 
-    fn lda(&mut self, value: u8) {
+    fn lda(&mut self, addressing_mode: &AddressingMode) {
+        let addr = self.get_operand_address(addressing_mode);
+        let value = self.mem_read(addr);
         self.register_a = value;
+        dbg!(
+            addr,
+            value,
+            self.register_a,
+            self.register_x,
+            self.register_y
+        );
         self.update_zero_flag(self.register_a);
         self.update_negative_flag(self.register_a);
     }
@@ -191,14 +234,96 @@ impl CPU {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_0x49_lda_immediate_load_data() {
-        let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xa9, 0x05, 0x00]);
-        assert_eq!(cpu.register_a, 0x05);
+    fn lda_status_flags(cpu: CPU) {
         assert_eq!(cpu.status & 0b0000_0010, 0b00);
         assert_eq!(cpu.status & 0b1000_0000, 0);
     }
+
+    #[test]
+    fn test_0xa9_lda_immediate_load_data() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x05, 0x00]);
+        assert_eq!(cpu.register_a, 0x05);
+        lda_status_flags(cpu);
+    }
+
+    #[test]
+    fn test_0xa5_lda_zero_page() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0xc1, 0x01);
+
+        cpu.load_and_run(vec![0xa5, 0xc1, 0x00]);
+        assert_eq!(cpu.register_a, 0x01);
+        lda_status_flags(cpu);
+    }
+
+    #[test]
+    fn test_0xb5_lda_zero_page_x() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0xc2, 0x01);
+
+        cpu.load_and_run(vec![0xe8, 0xb5, 0xc1, 0x00]);
+
+        assert_eq!(cpu.register_a, 0x01);
+        lda_status_flags(cpu);
+    }
+
+    #[test]
+    fn test_0xad_lda_absolute() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0xc1c2, 0x01);
+
+        cpu.load_and_run(vec![0xad, 0xc2, 0xc1, 0x00]);
+        assert_eq!(cpu.register_a, 0x01);
+        lda_status_flags(cpu);
+    }
+
+    #[test]
+    fn test_0xbd_lda_absolute_x() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0xc1c4, 0x01);
+
+        cpu.load_and_run(vec![0xe8, 0xe8, 0xbd, 0xc2, 0xc1, 0x00]);
+        assert_eq!(cpu.register_a, 0x01);
+        lda_status_flags(cpu);
+    }
+
+    //TODO: TEST AFTER OP CODE TO MODIFY Y HAS BEEN IMPLEMENTED
+
+    // #[test]
+    // fn test_0xb9_lda_absolute_y() {
+    //     let mut cpu = CPU::new();
+    //     cpu.mem_write(0xc1c5, 0x01);
+    //     cpu.register_y = 0x03;
+    //
+    //     cpu.load_and_run(vec![0xb9, 0xc2, 0xc1, 0x00]);
+    //     assert_eq!(cpu.register_a, 0x04);
+    //     lda_status_flags(cpu);
+    // }
+
+    #[test]
+    fn test_0xa1_lda_indirect_x() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x06, 0x01);
+        cpu.mem_write(0x01, 0x03);
+
+        cpu.load_and_run(vec![0xe8, 0xe8, 0xa1, 0x04, 0x00]);
+        assert_eq!(cpu.register_a, 0x03);
+        lda_status_flags(cpu);
+    }
+
+    //TODO: TEST AFTER OP CODIE TO MODIFY Y HAS BEEN IMPLEMENTED
+
+    // #[test]
+    // fn test_0xb1_lda_indirect_y() {
+    //     let mut cpu = CPU::new();
+    //     cpu.mem_write(0x07, 0xcc);
+    //     cpu.mem_write(0xcc, 0xff);
+    //     //todo: increment y to 0x03
+    //     cpu.load_and_run(vec![0xb1, 0x04, 0x00]);
+    //     assert_eq!(cpu.register_a, 0xff);
+    //     lda_status_flags(cpu);
+    // }
 
     #[test]
     fn test_0xa9_lda_zero_flag() {
