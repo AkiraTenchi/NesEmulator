@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 mod op_codes;
 mod tests;
 
@@ -45,58 +47,33 @@ impl CPU {
 
     // todo: implement addressing mode usage
     pub fn run(&mut self) {
+        let code_map: &HashMap<u8, &'static op_codes::OpCode> = &*op_codes::OPCODES_MAP;
         loop {
             let opcode = self.mem_read(self.program_counter);
+            let instruction = code_map
+                .get(&opcode)
+                .unwrap_or_else(|| panic!("Instruction {:x} does not exist", opcode));
             self.program_counter += 1;
+            let program_counter_state = self.program_counter;
 
             match opcode {
-                0xA9 => {
-                    self.lda(&AddressingMode::Immediate);
-                    self.program_counter += 1;
+                0xa9 | 0xa5 | 0xb5 | 0xad | 0xbd | 0xb9 | 0xa1 | 0xb1 => {
+                    self.lda(&instruction.addressing_mode);
                 }
 
-                0xA5 => {
-                    self.lda(&AddressingMode::ZeroPage);
-                    self.program_counter += 1;
-                }
-
-                0xb5 => {
-                    self.lda(&AddressingMode::ZeroPage_X);
-                    self.program_counter += 1;
-                }
-
-                0xAD => {
-                    self.lda(&AddressingMode::Absolute);
-                    self.program_counter += 2;
-                }
-
-                0xbd => {
-                    self.lda(&AddressingMode::Absolute_X);
-                    self.program_counter += 2;
-                }
-
-                0xb9 => {
-                    self.lda(&AddressingMode::Absolute_Y);
-                    self.program_counter += 2;
-                }
-
-                0xa1 => {
-                    self.lda(&AddressingMode::Indirect_X);
-                    self.program_counter += 1;
-                }
-
-                0xb1 => {
-                    self.lda(&AddressingMode::Indirect_Y);
-                    self.program_counter += 1;
-                }
-
+                /* STA */
+                // 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
+                //     self.sta(&instruction.addressing_mode);
+                // }
                 0xAA => self.tax(),
-
-                0xE8 => self.inx(),
-
+                0xe8 => self.inx(),
                 0x00 => return,
 
                 _ => todo!(),
+            }
+
+            if program_counter_state == self.program_counter {
+                self.program_counter += (instruction.bytes - 1) as u16;
             }
         }
     }
