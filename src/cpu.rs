@@ -1,3 +1,4 @@
+mod op_codes;
 mod tests;
 
 pub struct CPU {
@@ -224,4 +225,3 @@ impl CPU {
         }
     }
 }
-
